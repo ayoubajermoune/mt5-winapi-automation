@@ -19,7 +19,8 @@ so it can be re-extracted after an MT5 update.
 
 ## 1. Resources (ordinary-tool observation)
 
-Custom DIALOGEX/ACCEL/MENU parsers were written. Key extractions:
+Custom DIALOGEX/ACCEL/MENU parsers were written (`/tmp/opencode/rsrc_parser.py`
+family). Key extractions:
 
 - **RT_MENU / RT_ACCELERATOR**: main menu `&New Order\tF9` → **0x8050**;
   accelerator table 128 confirms **F9 → 0x8050**. Chart table 131:
@@ -42,7 +43,7 @@ Rather than a monolithic WndProc switch, MT5 registers handlers in tables of
 ```
 
 - **370 entries** in the main-window table (`.rdata` region
-  `0x1423bf000–0x1423c1000`); full dump: `data/wm-command-table.txt`.
+  `0x1423bf000–0x1423c1000`); full dump: `mt5-wm-command-table.txt`.
 - Per-surface tables also found: chart context (`0x141df8f38+`), trade tab
   (`0x1424501e8+`), Market Watch (`0x14247f218+`).
 
@@ -108,12 +109,40 @@ One Click Trading SELL/BUY buttons have **no automation-safe handle**.
   (`0x0419`) read from config at `[obj+0x104]` — not message dispatch.
 - `mov eax, 0x8050` at `0x1402bdd9a` is a stack allocation size, not a
   command constant.
+- **RT_MENU 521 contains items "Buy" (0xCD9C) and "Sell" (0xCD9D)** — this
+  is the **chart objects** menu (arrows, thumbs up/down, price labels), NOT
+  trade execution commands. Do not use 0xCD9C/0xCD9D for order placement.
+- `Command.MARKET_WATCH` (0x804B) and `Command.TOOLBOX` (0x8049) are
+  verified in RT_MENU (Ctrl+M / Ctrl+T) but have **no entry in the
+  plaintext dispatch tables** — their handlers likely live in the encrypted
+  `.cod*` sections. Sending WM_COMMAND with these ids may still work (the
+  encrypted WndProc can route them), but this is a menu-level observation,
+  not a dispatch-table one.
+
+## 8. Automated re-extraction (tools/extract_ids.py)
+
+The checklist below is automated. From the repo root:
+
+```bash
+python tools/extract_ids.py "C:\Program Files\MetaTrader 5\terminal64.exe" --json report.json
+```
+
+The tool parses RT_MENU / RT_ACCELERATOR / RT_DIALOG 2405 with a built-in
+PE reader (stdlib only), scans `.rdata` for the dispatch-table pattern, and
+**diffs everything against the identifiers pinned in `mt5auto/ids.py`**.
+Exit code 0 = still valid for this build; exit code 1 = drift, re-pin.
+
+Last run against the pinned build: **36/36 pinned command ids verified**
+(34 present in dispatch tables, 2 menu-only: 0x804B, 0x8049);
+dialog 2405: 19/19 controls matched.
 
 ## Re-extraction checklist (after an MT5 update)
 
-1. Verify SHA-256 changed → re-run the resource parsers for menus,
-   accelerators, dialog 2405.
-2. Re-scan `.rdata` for the `[handler][0x111][cmd][cmd][0x3a]` pattern and
-   diff command ids.
-3. Re-locate the `mov edx,0x419` sender (`mov r8d,<cmd>` preceding a call
+1. Run `python tools/extract_ids.py <new terminal64.exe>` — it automates
+   steps 2–3 below and reports drift against `mt5auto/ids.py`.
+2. (manual fallback) Verify SHA-256 changed → re-run the resource parsers
+   for menus, accelerators, dialog 2405.
+3. (manual fallback) Re-scan `.rdata` for the `[handler][0x111][cmd][cmd][0x3a]`
+   pattern and diff command ids.
+4. Re-locate the `mov edx,0x419` sender (`mov r8d,<cmd>` preceding a call
    through a `.rdata` slot) to confirm the internal message still applies.
