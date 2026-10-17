@@ -18,22 +18,15 @@ from __future__ import annotations
 import ctypes
 import time
 from dataclasses import dataclass
-from ctypes import wintypes as _wt
 
 from . import ids
 from . import winapi as _w
-from .terminal import MT5Terminal
+from .terminal import MT5Terminal, WindowHandle
 
 # INPUT structures for SendInput (mouse injection)
 INPUT_MOUSE = 0
 MOUSEEVENTF_LEFTDOWN = 0x0002
 MOUSEEVENTF_LEFTUP = 0x0004
-
-wintypes_RECT = _wt.RECT
-_w.user32.GetWindowRect.argtypes = [_wt.HWND, ctypes.POINTER(_wt.RECT)]
-_w.user32.GetWindowRect.restype = _wt.BOOL
-_w.user32.SetCursorPos.argtypes = [ctypes.c_int, ctypes.c_int]
-_w.user32.SetCursorPos.restype = _wt.BOOL
 
 
 @dataclass(frozen=True)
@@ -57,11 +50,6 @@ class INPUT(ctypes.Structure):
     _fields_ = [("type", ctypes.c_ulong), ("mi", MOUSEINPUT)]
 
 
-# SendInput signature (needs the INPUT structure defined above)
-_w.user32.SendInput.argtypes = [ctypes.c_uint, ctypes.POINTER(INPUT), ctypes.c_int]
-_w.user32.SendInput.restype = ctypes.c_uint
-
-
 def _click_at(x: int, y: int) -> None:
     """Send a left click at screen coordinates via SendInput."""
     _w.user32.SetCursorPos(x, y)
@@ -82,16 +70,26 @@ class ChartWindow:
 
     @classmethod
     def find_all(cls, terminal: MT5Terminal) -> list["ChartWindow"]:
-        """Enumerate chart windows of this terminal by class name."""
-        found: list[ChartWindow] = []
+        """Enumerate chart windows of this terminal.
 
-        def _cb(hwnd):
-            if _w.pid_of(hwnd) == terminal.main.pid and \
-                    _w.window_class(hwnd) == ids.CHART_WINDOW_CLASS:
-                found.append(cls(terminal, hwnd))
+        The chart window class name is NOT statically resolvable (the string
+        does not appear in plaintext — see ids.CHART_WINDOW_CLASS), so charts
+        are enumerated as visible child windows of the main frame that are
+        large enough to be charts (> 200x150 px).
+        """
+        found: list[ChartWindow] = []
+        main = terminal.main.hwnd
+
+        def _cb(child):
+            if not _w.user32.IsWindowVisible(child):
+                return True
+            probe = cls(terminal, child)
+            left, top, right, bottom = probe.rect()
+            if (right - left) > 200 and (bottom - top) > 150:
+                found.append(probe)
             return True
 
-        _w.enum_windows(_cb)
+        _w.enum_child_windows(main, _cb)
         return found
 
     def toggle_one_click_trading(self) -> None:
@@ -136,3 +134,15 @@ class ChartWindow:
             self.terminal.activate()
             time.sleep(0.2)
         _click_at(pt.x, pt.y)
+
+
+# Need RECT for GetWindowRect
+from ctypes import wintypes as _wt  # noqa: E402
+
+wintypes_RECT = _wt.RECT
+_w.user32.GetWindowRect.argtypes = [_wt.HWND, ctypes.POINTER(_wt.RECT)]
+_w.user32.GetWindowRect.restype = _wt.BOOL
+_w.user32.SetCursorPos.argtypes = [ctypes.c_int, ctypes.c_int]
+_w.user32.SetCursorPos.restype = _wt.BOOL
+_w.user32.SendInput.argtypes = [ctypes.c_uint, ctypes.POINTER(INPUT), ctypes.c_int]
+_w.user32.SendInput.restype = ctypes.c_uint
