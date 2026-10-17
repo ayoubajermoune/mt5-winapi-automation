@@ -136,6 +136,40 @@ Last run against the pinned build: **36/36 pinned command ids verified**
 (34 present in dispatch tables, 2 menu-only: 0x804B, 0x8049);
 dialog 2405: 19/19 controls matched.
 
+## 8b. Ghidra string scan (Ghidra 12.1.4 headless, `-noanalysis`)
+
+Full auto-analysis of this 121 MB binary **times out** (REA `provider_timeout`
+after 2 h: the analyser keeps chasing thunks into the encrypted `.cod*`
+garbage past `0x143000000`). A targeted alternative works: import with
+`-noanalysis` (≈3 min) + custom Ghidra scripts that scan memory directly.
+Scripts used: `FindOrderStrings.java`, `ProbeOne.java`, `ProbeNull.java`
+(see the repo's RESEARCH notes; sources archived in the analysis workspace).
+
+Results (block map: `.text 140001000`, `.rdata 141bfe000`, `.data 142a13000`,
+`.cod0 142f40000`, `.cod2 143f3a000`, `.rsrc 144a86000`):
+
+- **"New Order" (UTF-16): 500+ hits, ALL in `.rsrc`** (menu/accelerator
+  resources) — zero hits in `.text`/`.rdata`/`.cod*`. The UI strings the
+  program displays live exclusively in resources; the code refers to them by
+  offset. This *confirms* the resource-first methodology of this repo.
+- **"Terminal" (NUL-terminated UTF-16): 5 copies in `.rdata`
+  at `0x14287c584..0x14287c62e`** — static confirmation of
+  `MAIN_WINDOW_CLASS = "Terminal"` (matches the live X11 observation).
+- **"ChartsFrame": 0 hits anywhere** — the previously guessed chart class
+  name does not exist in the binary; `CHART_WINDOW_CLASS` is now `None`
+  and `ChartWindow.find_all()` enumerates sized child windows of the main
+  frame instead.
+- **"Terminal64": 0 hits** — under Wine this X11 class is synthesised from
+  the exe name, not a registered Win32 class.
+- **"Order:" (UTF-16): only in `.rsrc`** — the `Order: <symbol>` window
+  title is built from a resource format string at runtime.
+- **"MetaTrader"/"MetaTrader 5": many UTF-16 hits in `.rdata`** (about
+  0x14283b000–0x1428a6000) — normal data strings, also seen by the probe.
+
+Conclusion: string-based automation offers nothing beyond what resources +
+process discovery already provide — validating the library's design
+(IDs over strings).
+
 ## 9. Live validation under Wine (runtime observation)
 
 Environment: MT5 running under Wine 11.20 on Xvfb `:1` (1600x900), demo
