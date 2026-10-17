@@ -34,7 +34,6 @@ _w.user32.GetWindowRect.argtypes = [_wt.HWND, ctypes.POINTER(_wt.RECT)]
 _w.user32.GetWindowRect.restype = _wt.BOOL
 _w.user32.SetCursorPos.argtypes = [ctypes.c_int, ctypes.c_int]
 _w.user32.SetCursorPos.restype = _wt.BOOL
-_w.user32.SendInput.argtypes = [ctypes.c_uint, ctypes.POINTER("INPUT"), ctypes.c_int]  # patched below
 
 
 @dataclass(frozen=True)
@@ -58,7 +57,7 @@ class INPUT(ctypes.Structure):
     _fields_ = [("type", ctypes.c_ulong), ("mi", MOUSEINPUT)]
 
 
-# finalize SendInput signature now that INPUT exists
+# SendInput signature (needs the INPUT structure defined above)
 _w.user32.SendInput.argtypes = [ctypes.c_uint, ctypes.POINTER(INPUT), ctypes.c_int]
 _w.user32.SendInput.restype = ctypes.c_uint
 
