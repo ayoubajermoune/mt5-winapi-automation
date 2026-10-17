@@ -79,9 +79,19 @@ mt5auto/
   pywinauto_adapter.py
 examples/             # runnable scripts
 tests/                # identifier-table tests (run anywhere)
+tools/extract_ids.py  # re-extract & verify ids against any MT5 build
 data/                 # full WM_COMMAND dispatch-table dump (370 entries)
 RESEARCH.md           # full reverse-engineering evidence chain
 ```
+
+## Re-extracting after an MT5 update
+
+```bash
+python tools/extract_ids.py "C:\Program Files\MetaTrader 5\terminal64.exe"
+```
+
+Exit 0 = the pinned ids still match that build; exit 1 = drift detected
+(the report lists exactly which identifiers moved).
 
 ## Tests
 
