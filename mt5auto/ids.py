@@ -130,8 +130,9 @@ class OneClickTermsControl:
 # MT5 registers standard-looking classes; discovery in terminal.py falls back
 # to EnumWindows + process name when class names differ.
 # ---------------------------------------------------------------------------
-MAIN_WINDOW_CLASS = "Terminal"       # top-level MT5 frame (verify per build)
-ORDER_WINDOW_TITLE = "Order"         # English locale; pass title= for others
+MAIN_WINDOW_CLASS = "Terminal"       # top-level MT5 frame (live-verified under Wine)
+ORDER_WINDOW_TITLE = "Order"         # matched as substring; real title is
+                                     # "Order: EURUSD - Euro vs US Dollar" (locale-dependent)
 CHART_WINDOW_CLASS = "ChartsFrame"   # per-chart window (verify per build)
 ONE_CLICK_PANEL_CLASS = None         # custom-drawn: no stable class found
 
