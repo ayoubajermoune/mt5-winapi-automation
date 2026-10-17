@@ -136,6 +136,27 @@ Last run against the pinned build: **36/36 pinned command ids verified**
 (34 present in dispatch tables, 2 menu-only: 0x804B, 0x8049);
 dialog 2405: 19/19 controls matched.
 
+## 9. Live validation under Wine (runtime observation)
+
+Environment: MT5 running under Wine 11.20 on Xvfb `:1` (1600x900), demo
+account. Verified with `xdotool` (X11 window inspection):
+
+- **Main window class is `Terminal`** ✔ — `xdotool search --class "Terminal"`
+  found the frame titled `10013190489 - MetaQuotes-Demo: ...`. This confirms
+  `ids.MAIN_WINDOW_CLASS = "Terminal"`.
+- **F9 opens the Order window** ✔ — sending F9 to the main window produced
+  a new top-level window titled **`Order: EURUSD - Euro vs US Dollar`**.
+  This is the runtime counterpart of the static finding "accelerator
+  table 128: F9 → 0x8050 → dialog 2405".
+- **Title-based discovery works with substring matching** — the title is
+  `Order: <symbol>` (not exactly `"Order"`), which is why
+  `MT5Terminal.find_order_window()` matches with `in title.lower()`.
+- **Escape closes the Order window** ✔ — consistent with the IDCANCEL
+  (2) post in `OrderWindow.cancel()`.
+
+Screenshot: `Order: EURUSD - Euro vs US Dollar` captured on the virtual
+display during the test.
+
 ## Re-extraction checklist (after an MT5 update)
 
 1. Run `python tools/extract_ids.py <new terminal64.exe>` — it automates
