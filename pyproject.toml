@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mt5-winapi"
+version = "0.1.0"
+description = "Stable Win32 automation for MetaTrader 5 (terminal64.exe) using resource-derived command IDs and control IDs"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+authors = [{ name = "ayoubajermoune" }]
+keywords = ["metatrader", "mt5", "automation", "win32", "ctypes", "wm_command"]
+classifiers = [
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+# Core uses only the standard library (ctypes). No third-party dependencies.
+dependencies = []
+
+[project.optional-dependencies]
+pywinauto = ["pywinauto>=0.6.8"]
+
+[project.urls]
+Homepage = "https://github.com/ayoubajermoune/mt5-winapi-automation"
+
+[tool.setuptools.packages.find]
+include = ["mt5auto*"]
