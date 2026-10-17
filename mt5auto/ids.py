@@ -130,10 +130,17 @@ class OneClickTermsControl:
 # MT5 registers standard-looking classes; discovery in terminal.py falls back
 # to EnumWindows + process name when class names differ.
 # ---------------------------------------------------------------------------
-MAIN_WINDOW_CLASS = "Terminal"       # top-level MT5 frame (live-verified under Wine)
+# Window discovery hints.
+# MAIN_WINDOW_CLASS "Terminal": verified twice — (a) statically, Ghidra exact
+#   NUL-terminated UTF-16 string at .rdata 0x14287c584 (5 copies); (b) live
+#   under Wine/X11 (xdotool class match on the running terminal64.exe).
+# CHART_WINDOW_CLASS: UNKNOWN — an earlier guess ("ChartsFrame") has ZERO
+#   occurrences in the binary (verified with Ghidra string scan). Chart
+#   windows are found as child windows of the main frame instead.
+MAIN_WINDOW_CLASS = "Terminal"
 ORDER_WINDOW_TITLE = "Order"         # matched as substring; real title is
                                      # "Order: EURUSD - Euro vs US Dollar" (locale-dependent)
-CHART_WINDOW_CLASS = "ChartsFrame"   # per-chart window (verify per build)
+CHART_WINDOW_CLASS = None            # not statically resolvable (encrypted .cod* code)
 ONE_CLICK_PANEL_CLASS = None         # custom-drawn: no stable class found
 
 # Executable name used for process-based discovery.
